@@ -1,0 +1,14 @@
+User
+  ↓
+Frontend (Streamlit)
+  ↓
+Backend Logic (Python)
+  ↓
+LLM Engine (OpenAI API)
+  ↓
+Analysis Modules
+    ├─ Idea Structurer
+    ├─ Startup Scoring Engine
+    ├─ Risk Analyzer
+    ├─ Scenario Simulator
+    └─ Recommendation Engine
