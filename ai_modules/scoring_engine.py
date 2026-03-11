@@ -2,50 +2,59 @@ import json
 from utils.gemini_client import get_gemini_client
 
 
-def score_startup(structured_idea: dict) -> dict:
+def score_startup(structured_idea: dict):
 
     client = get_gemini_client()
 
     prompt = f"""
-You are a startup investor evaluating a startup idea.
+You are a venture capital analyst.
 
-Analyze the startup idea below and score it.
+Evaluate the following startup idea and score it.
 
-Return ONLY JSON.
+Return ONLY valid JSON.
 
-Criteria (score from 1 to 10):
+Format:
 
-problem_severity
-market_size
-competition
-differentiation
-monetization
-feasibility
-distribution
-speed_to_mvp
+{{
+ "overall_score": number,
+ "scores": {{
+   "problem_severity": number,
+   "market_size": number,
+   "competition": number,
+   "differentiation": number,
+   "monetization": number,
+   "feasibility": number,
+   "distribution": number,
+   "speed_to_mvp": number
+ }},
+ "summary": "short explanation"
+}}
 
-Also include:
-overall_score
-summary
+Score each criterion from 1 to 10.
 
 Startup idea:
-
 {structured_idea}
 """
 
     response = client.models.generate_content(
         model="gemini-2.5-flash",
-        contents=prompt,
+        contents=prompt
     )
 
     text = response.text.strip()
 
+    # Gemini đôi khi trả ```json block → phải remove
+    text = text.replace("```json", "").replace("```", "").strip()
+
     try:
         return json.loads(text)
 
-    except:
+    except Exception as e:
+        print("Parsing error:", e)
+        print("Model output:", text)
+
         return {
             "overall_score": 0,
             "scores": {},
-            "summary": "Model response not valid JSON"
+            "summary": "Model response was not valid JSON"
         }

@@ -23,10 +23,10 @@ if st.button("Analyze Idea"):
 
         st.write("## Structured Startup Idea")
         st.json(structured_idea)
+
+        st.write("## Startup Score")
+        st.json(scoring)        
     else:
         st.warning("Please enter a startup idea first.")
 
 
-st.write("## Startup Score")
-
-st.json(scoring)        
