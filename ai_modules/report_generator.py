@@ -7,20 +7,19 @@ def generate_report(structured, scoring, scenarios, risks, recommendations):
     prompt = f"""
 You are a high-level startup strategy advisor.
 
-Your job is to write a compelling founder briefing, as if you are presenting a strategic assessment to the founder of an early-stage startup.
+Write a founder briefing that feels like a serious consultant report delivered to the founder of an early-stage startup.
 
 Writing style requirements:
 - Professional, vivid, sharp, and insightful
-- Make it feel like a real startup strategy report
-- Speak directly about the startup with confidence and clarity
+- Sound like a strategic advisor, not a chatbot
 - Do not sound robotic
-- Do not mention JSON or say "based on the provided data"
-- Be concise but rich in insight
+- Do not mention JSON, structured data, or "provided information"
+- Be concise but meaningful
 - Highlight both opportunity and danger
-- Make the founder feel like they are receiving serious strategic advice
-- Open with 2-3 sentences that frame the startup like a serious business opportunity under evaluation.
+- Make the founder feel they are receiving serious strategic advice
+- Open with 2-3 sentences framing the startup as a real business opportunity under evaluation
 
-Structure the report exactly with these section headings:
+Structure the report exactly with these headings:
 
 # Founder Briefing
 # Startup Overview
@@ -29,15 +28,16 @@ Structure the report exactly with these section headings:
 # Key Risks
 # Strategic Recommendations
 
-Formatting requirements:
-- In Strategic Evaluation, mention the overall score clearly
-- In Future Scenarios, create 3 short subsections:
+Extra formatting requirements:
+- In Strategic Evaluation, mention the overall score naturally
+- In Future Scenarios, use these subheadings:
   ## Best-Case Scenario
   ## Realistic Scenario
   ## Worst-Case Scenario
 - In Key Risks, use bullet points
 - In Strategic Recommendations, use numbered action steps
-- Keep the tone suitable for a founder preparing to make a decision
+- Avoid repeating the same sentence structure too often
+- Make the report read smoothly, like a briefing memo
 
 Startup idea:
 {structured}
