@@ -2,8 +2,36 @@ import json
 from utils.gemini_client import get_gemini_client
 
 
-def generate_full_analysis(startup_idea: str) -> dict:
+def generate_full_analysis(startup_idea: str, analysis_mode: str) -> dict:
     client = get_gemini_client()
+
+    mode_instruction_map = {
+        "Founder": """
+Tone:
+- Strategic
+- Constructive
+- Clear and practical
+- Focus on helping the founder make better decisions
+""",
+        "Investor": """
+Tone:
+- Analytical
+- Skeptical but fair
+- Focus on market attractiveness, execution risk, and business viability
+""",
+        "Brutal": """
+Tone:
+- Extremely direct
+- Ruthlessly honest
+- Expose weak logic, fake differentiation, shallow market thinking, and unproven demand
+- Treat bad startup ideas as bad startup ideas
+- Do not use motivational language
+- Do not praise weak ideas
+- Still remain smart, concrete, and useful
+"""
+    }
+
+    mode_instruction = mode_instruction_map.get(analysis_mode, mode_instruction_map["Founder"])
 
     prompt = f"""
 You are an elite startup strategy analyst.
@@ -52,11 +80,19 @@ Analyze the startup idea below and return ONLY valid JSON in this exact format:
   }}
 }}
 
-Rules:
+Global requirements:
 - Return only JSON
 - No markdown
 - All scores must be from 1 to 10
 - Be practical, realistic, and strategically sharp
+- Avoid generic startup clichés
+- Make the analysis concrete and decision-oriented
+
+Analysis mode:
+{analysis_mode}
+
+Mode instructions:
+{mode_instruction}
 
 Startup idea:
 {startup_idea}

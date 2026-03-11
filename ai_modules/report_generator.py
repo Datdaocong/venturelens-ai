@@ -1,43 +1,67 @@
 from utils.gemini_client import get_gemini_client
 
 
-def generate_report(structured, scoring, scenarios, risks, recommendations):
+def generate_report(structured, scoring, scenarios, risks, recommendations, analysis_mode):
     client = get_gemini_client()
+
+    tone_map = {
+        "Founder": """
+Write like a high-level startup advisor briefing a founder.
+Be sharp, constructive, and strategic.
+""",
+        "Investor": """
+Write like an investor memo.
+Be analytical, commercially minded, and skeptical.
+""",
+        "Brutal": """
+Write like a brutally honest partner reviewing a weak or uncertain startup.
+Be direct, cutting, and unsentimental.
+Do not soften obvious weaknesses.
+Still be useful, intelligent, and professionally written.
+"""
+    }
+
+    tone_instruction = tone_map.get(analysis_mode, tone_map["Founder"])
 
     prompt = f"""
 You are a high-level startup strategy advisor.
 
-Write a founder briefing that feels like a serious consultant report delivered to the founder of an early-stage startup.
+Write a serious startup briefing memo.
 
-Writing style requirements:
-- Professional, vivid, sharp, and insightful
-- Sound like a strategic advisor, not a chatbot
-- Do not sound robotic
+Mode:
+{analysis_mode}
+
+Tone instructions:
+{tone_instruction}
+
+Writing requirements:
+- Professional
+- Concise but high-signal
+- Do not sound like a chatbot
 - Do not mention JSON, structured data, or "provided information"
-- Be concise but meaningful
-- Highlight both opportunity and danger
-- Make the founder feel they are receiving serious strategic advice
-- Open with 2-3 sentences framing the startup as a real business opportunity under evaluation
+- Focus on business truth, not motivational fluff
+- Make the report feel like an internal strategy memo
+- Open with 2-3 sentences framing the startup as a real business under evaluation
 
 Structure the report exactly with these headings:
 
-# Founder Briefing
-# Startup Overview
-# Strategic Evaluation
-# Future Scenarios
-# Key Risks
-# Strategic Recommendations
+# Executive Brief
+# Business Overview
+# Strategic Assessment
+# Future Outlook
+# Core Risks
+# Recommended Actions
 
-Extra formatting requirements:
-- In Strategic Evaluation, mention the overall score naturally
-- In Future Scenarios, use these subheadings:
-  ## Best-Case Scenario
-  ## Realistic Scenario
-  ## Worst-Case Scenario
-- In Key Risks, use bullet points
-- In Strategic Recommendations, use numbered action steps
-- Avoid repeating the same sentence structure too often
-- Make the report read smoothly, like a briefing memo
+Extra formatting rules:
+- In Strategic Assessment, mention the overall score naturally
+- In Future Outlook, use these subheadings:
+  ## Best-Case
+  ## Realistic Case
+  ## Worst-Case
+- In Core Risks, use bullet points
+- In Recommended Actions, use numbered action steps
+- Keep sentences crisp
+- Avoid repetitive phrasing
 
 Startup idea:
 {structured}
