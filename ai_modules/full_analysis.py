@@ -38,23 +38,23 @@ You are an elite startup strategy analyst.
 
 Analyze the startup idea below and return ONLY valid JSON in this exact format:
 
-{
+{{
   "verdict": "Promising | Risky | Weak",
   "confidence": "Low | Medium | High",
 
-  "structured_idea": {
+  "structured_idea": {{
     "startup_name": "string",
     "target_users": "string",
     "problem": "string",
     "solution": "string",
     "business_model": "string",
     "market": "string",
-    "key_assumptions": ["string","string","string"]
-  },
+    "key_assumptions": ["string", "string", "string"]
+  }},
 
-  "scoring": {
+  "scoring": {{
     "overall_score": number,
-    "scores": {
+    "scores": {{
       "problem_severity": number,
       "market_size": number,
       "competition": number,
@@ -63,30 +63,29 @@ Analyze the startup idea below and return ONLY valid JSON in this exact format:
       "feasibility": number,
       "distribution": number,
       "speed_to_mvp": number
-    },
+    }},
     "summary": "string"
-  },
+  }},
 
-  "scenarios": {
+  "scenarios": {{
     "best_case": "string",
     "realistic_case": "string",
     "worst_case": "string",
-    "key_triggers": ["string","string","string"]
-  },
+    "key_triggers": ["string", "string", "string"]
+  }},
 
-  "risks": {
-    "top_risks": ["string","string","string"],
-    "dangerous_assumptions": ["string","string","string"],
+  "risks": {{
+    "top_risks": ["string", "string", "string"],
+    "dangerous_assumptions": ["string", "string", "string"],
     "risk_summary": "string"
-  },
+  }},
 
-  "recommendations": {
-    "next_steps": ["string","string","string","string","string"],
+  "recommendations": {{
+    "next_steps": ["string", "string", "string", "string", "string"],
     "mvp_suggestion": "string",
     "validation_focus": "string"
-  }
-}
-
+  }}
+}}
 
 Global requirements:
 - Return only JSON
