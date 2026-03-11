@@ -1,5 +1,5 @@
 from utils.gemini_client import get_gemini_client
-
+import json
 
 def generate_report(structured, scoring, scenarios, risks, recommendations, analysis_mode):
     client = get_gemini_client()
@@ -70,19 +70,19 @@ Formatting rules:
 - Keep it tight, sharp, and high-signal
 
 Startup idea:
-{structured}
+{json.dumps(structured, indent=2)}
 
 Scoring:
-{scoring}
+{json.dumps(scoring, indent=2)}
 
 Scenarios:
-{scenarios}
+{json.dumps(scenarios, indent=2)}
 
 Risks:
-{risks}
+{json.dumps(risks, indent=2)}
 
 Recommendations:
-{recommendations}
+{json.dumps(recommendations, indent=2)}
 """
 
     response = client.models.generate_content(
