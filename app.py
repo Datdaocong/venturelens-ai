@@ -2,6 +2,16 @@ import streamlit as st
 from ai_modules.full_analysis import generate_full_analysis
 from ai_modules.report_generator import generate_report
 
+st.markdown("""
+<style>
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
 st.set_page_config(
     page_title="VentureLens",
     layout="wide"
@@ -28,11 +38,9 @@ if "report" not in st.session_state:
 with st.sidebar:
     st.subheader("Analysis Settings")
 
-    analysis_mode = st.radio(
-        "Mode",
-        ["Founder", "Investor", "Brutal"],
-        index=0,
-        key="analysis_mode"
+    analysis_mode = st.selectbox(
+        "Analysis Mode",
+        ["Founder", "Investor", "Brutal", "Compare All"]
     )
 
     show_details = st.checkbox(
@@ -78,11 +86,43 @@ with col_b:
 # ---------------------------
 if analyze_clicked:
     if startup_idea.strip():
+
         with st.spinner("Running strategic analysis..."):
-            analysis = generate_full_analysis(startup_idea, analysis_mode)
-            st.session_state.analysis = analysis
-            st.session_state.report = None
+
+            if analysis_mode == "Compare All":
+
+                founder = generate_full_analysis(startup_idea, "Founder")
+                investor = generate_full_analysis(startup_idea, "Investor")
+                brutal = generate_full_analysis(startup_idea, "Brutal")
+
+                st.subheader("Mode Comparison")
+
+                c1, c2, c3 = st.columns(3)
+
+                with c1:
+                    st.markdown("### Founder")
+                    st.metric("Score", founder["scoring"]["overall_score"])
+
+                with c2:
+                    st.markdown("### Investor")
+                    st.metric("Score", investor["scoring"]["overall_score"])
+
+                with c3:
+                    st.markdown("### Brutal")
+                    st.metric("Score", brutal["scoring"]["overall_score"])
+
+                # không lưu analysis vì đây là compare view
+                st.session_state.analysis = None
+                st.session_state.report = None
+
+            else:
+                analysis = generate_full_analysis(startup_idea, analysis_mode)
+
+                st.session_state.analysis = analysis
+                st.session_state.report = None
+
         st.success("Analysis complete.")
+
     else:
         st.warning("Enter a startup idea before running analysis.")
 
@@ -98,6 +138,8 @@ if analysis:
     risks = analysis.get("risks", {})
     recommendations = analysis.get("recommendations", {})
 
+    verdict = analysis.get("verdict", "Unknown")
+    confidence = analysis.get("confidence", "Unknown")
     overall_score = scoring.get("overall_score", 0)
     score_map = scoring.get("scores", {})
     score_summary = scoring.get("summary", "No summary available.")
@@ -105,18 +147,29 @@ if analysis:
     st.divider()
     st.subheader("Startup Snapshot")
 
-    snap_1, snap_2, snap_3 = st.columns([1, 1, 2])
+    snap_1, snap_2, snap_3, snap_4 = st.columns([1,1,1,2])
 
     with snap_1:
         st.metric("Overall Score", f"{overall_score}/10")
 
     with snap_2:
-        st.metric("Mode", analysis_mode)
+        st.metric("Verdict", verdict)
 
     with snap_3:
-        st.info(score_summary)
+        st.metric("Confidence", confidence)
 
-    st.subheader("Score Breakdown")
+    with snap_4:
+        st.info(score_summary)
+        st.subheader("Score Breakdown")
+
+    if verdict == "Promising":
+        st.success("This idea shows meaningful potential if executed well.")
+
+    elif verdict == "Risky":
+        st.warning("The idea has potential but carries significant execution risks.")
+
+    elif verdict == "Weak":
+        st.error("The core startup thesis appears weak or poorly differentiated.")
 
     m1, m2, m3, m4 = st.columns(4)
 
