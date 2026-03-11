@@ -1,5 +1,6 @@
 from ai_modules.scoring_engine import score_startup
 import streamlit as st
+from ai_modules.scenario_simulator import simulate_future_scenarios
 from ai_modules.idea_structurer import structure_startup_idea
 st.set_page_config(page_title="VentureLens AI", page_icon="🚀", layout="wide")
 
@@ -19,6 +20,8 @@ if st.button("Analyze Idea"):
 
             scoring = score_startup(structured_idea)
 
+            scenarios = simulate_future_scenarios(structured_idea, scoring)
+
         st.success("Idea analyzed successfully!")
 
         st.write("## Structured Startup Idea")
@@ -26,6 +29,9 @@ if st.button("Analyze Idea"):
 
         st.write("## Startup Score")
         st.json(scoring)        
+
+        st.write("## Future Scenarios")
+        st.json(scenarios)
     else:
         st.warning("Please enter a startup idea first.")
 
