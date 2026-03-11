@@ -1,4 +1,6 @@
 import streamlit as st
+from ai_modules.full_analysis import generate_full_analysis
+from ai_modules.report_generator import generate_report
 from ai_modules.idea_structurer import structure_startup_idea
 from ai_modules.scoring_engine import score_startup
 from ai_modules.scenario_simulator import simulate_future_scenarios
@@ -31,24 +33,22 @@ if st.button("Use Sample Idea"):
 
 startup_idea = st.text_area(
     "Describe your startup idea:",
-    value=st.session_state.startup_idea,
     placeholder="Example: An AI platform that helps students automatically summarize lecture recordings and generate quizzes...",
-    height=180
+    height=180,
+    key="startup_input"
 )
 
 if st.button("Analyze Idea"):
     if startup_idea.strip():
         with st.spinner("Preparing your founder briefing..."):
-            structured_idea = structure_startup_idea(startup_idea)
-            scoring = score_startup(structured_idea)
-            scenarios = simulate_future_scenarios(structured_idea, scoring)
-            risks = analyze_risks(structured_idea, scoring, scenarios)
-            recommendations = generate_recommendations(
-                structured_idea,
-                scoring,
-                scenarios,
-                risks
-            )
+            analysis = generate_full_analysis(startup_idea)
+
+            structured_idea = analysis.get("structured_idea", {})
+            scoring = analysis.get("scoring", {})
+            scenarios = analysis.get("scenarios", {})
+            risks = analysis.get("risks", {})
+            recommendations = analysis.get("recommendations", {})
+
             report = generate_report(
                 structured_idea,
                 scoring,
