@@ -1,3 +1,4 @@
+from ai_modules.scoring_engine import score_startup
 import streamlit as st
 from ai_modules.idea_structurer import structure_startup_idea
 st.set_page_config(page_title="VentureLens AI", page_icon="🚀", layout="wide")
@@ -16,9 +17,16 @@ if st.button("Analyze Idea"):
         with st.spinner("Structuring your startup idea..."):
             structured_idea = structure_startup_idea(startup_idea)
 
+            scoring = score_startup(structured_idea)
+
         st.success("Idea analyzed successfully!")
 
         st.write("## Structured Startup Idea")
         st.json(structured_idea)
     else:
         st.warning("Please enter a startup idea first.")
+
+
+st.write("## Startup Score")
+
+st.json(scoring)        
