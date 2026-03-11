@@ -6,27 +6,29 @@ def generate_report(structured, scoring, scenarios, risks, recommendations, anal
 
     tone_map = {
         "Founder": """
-Write like a high-level startup advisor briefing a founder.
-Be sharp, constructive, and strategic.
+Write like a sharp startup advisor speaking directly to a founder.
+Be constructive, practical, and strategically clear.
+The founder should feel guided, not comforted.
 """,
         "Investor": """
-Write like an investor memo.
-Be analytical, commercially minded, and skeptical.
+Write like an internal investor memo.
+Be analytical, commercially grounded, and skeptical.
+Focus on whether this is actually a venture-backable business.
 """,
         "Brutal": """
-Write like a brutally honest partner reviewing a weak or uncertain startup.
-Be direct, cutting, and unsentimental.
-Do not soften obvious weaknesses.
-Still be useful, intelligent, and professionally written.
+Write like a brutally honest partner reviewing a startup that may be fooling itself.
+Be incisive, unsentimental, and hard to impress.
+Attack weak assumptions, shallow differentiation, lazy market thinking, and feature-not-company ideas.
+Do not be mean for style points; be sharp because precision matters.
 """
     }
 
     tone_instruction = tone_map.get(analysis_mode, tone_map["Founder"])
 
     prompt = f"""
-You are a high-level startup strategy advisor.
+You are an elite startup strategist.
 
-Write a serious startup briefing memo.
+Write a memo that feels like a serious human assessment, not an AI summary.
 
 Mode:
 {analysis_mode}
@@ -34,34 +36,38 @@ Mode:
 Tone instructions:
 {tone_instruction}
 
-Writing requirements:
-- Professional
-- Concise but high-signal
-- Do not sound like a chatbot
-- Do not mention JSON, structured data, or "provided information"
-- Focus on business truth, not motivational fluff
-- Make the report feel like an internal strategy memo
-- Open with 2-3 sentences framing the startup as a real business under evaluation
+Non-negotiable writing rules:
+- Do not sound robotic
+- Do not repeat the input mechanically
+- Do not mention JSON, structured data, or "based on the analysis"
+- Every section must contain a real judgment, not just description
+- Use strong, clean business language
+- Vary sentence length
+- Avoid generic startup clichés
+- Make the report feel like it was written by someone who has seen many startups succeed and fail
+- If something is weak, say it clearly
+- If something is promising, explain exactly why
+- Start with a sharp opening paragraph that frames the startup's core bet in plain English
+- Write as if speaking to an ambitious founder with limited time and limited room for self-deception
+- Prefer insight over completeness
 
-Structure the report exactly with these headings:
+Write the report using exactly these headings:
 
-# Executive Brief
-# Business Overview
-# Strategic Assessment
-# Future Outlook
-# Core Risks
-# Recommended Actions
+# Executive Take
+# What This Startup Is Really Betting On
+# Why This Could Work
+# Why This Could Break
+# What the Next 12 Months Probably Look Like
+# What You Should Do Now
 
-Extra formatting rules:
-- In Strategic Assessment, mention the overall score naturally
-- In Future Outlook, use these subheadings:
+Formatting rules:
+- Under "What the Next 12 Months Probably Look Like", include these exact subheadings:
   ## Best-Case
   ## Realistic Case
   ## Worst-Case
-- In Core Risks, use bullet points
-- In Recommended Actions, use numbered action steps
-- Keep sentences crisp
-- Avoid repetitive phrasing
+- Under "Why This Could Break", use bullet points
+- Under "What You Should Do Now", use numbered action steps
+- Keep it tight, sharp, and high-signal
 
 Startup idea:
 {structured}

@@ -31,7 +31,10 @@ Tone:
 """
     }
 
-    mode_instruction = mode_instruction_map.get(analysis_mode, mode_instruction_map["Founder"])
+    mode_instruction = mode_instruction_map.get(
+        analysis_mode,
+        mode_instruction_map["Founder"]
+    )
 
     prompt = f"""
 You are an elite startup strategy analyst.
@@ -94,6 +97,8 @@ Global requirements:
 - Be practical, realistic, and strategically sharp
 - Avoid generic startup clichés
 - Make the analysis concrete and decision-oriented
+- Keep the verdict decisive
+- Confidence should reflect how solid or uncertain the startup thesis is
 
 Analysis mode:
 {analysis_mode}
@@ -119,6 +124,8 @@ Startup idea:
         print("Full analysis parsing error:", e)
         print("Raw output:", text)
         return {
+            "verdict": "Weak",
+            "confidence": "Low",
             "structured_idea": {},
             "scoring": {
                 "overall_score": 0,
