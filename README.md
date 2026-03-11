@@ -1,3 +1,9 @@
+## Live Demo
+
+https://venturelens-ai.streamlit.app
+
+
+
 # VentureLens
 
 AI-powered startup idea analysis and strategic scenario simulator.
