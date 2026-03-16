@@ -1,60 +1,31 @@
-import json
-from utils.gemini_client import get_gemini_client
+import numpy as np
 
+def score_startup(structured_idea, similar_startups):
 
-def score_startup(structured_idea: dict):
-
-    client = get_gemini_client()
-
-    prompt = f"""
-You are a venture capital analyst.
-
-Evaluate the following startup idea and score it.
-
-Return ONLY valid JSON.
-
-Format:
-
-{{
- "overall_score": number,
- "scores": {{
-   "problem_severity": number,
-   "market_size": number,
-   "competition": number,
-   "differentiation": number,
-   "monetization": number,
-   "feasibility": number,
-   "distribution": number,
-   "speed_to_mvp": number
- }},
- "summary": "short explanation"
-}}
-
-Score each criterion from 1 to 10.
-
-Startup idea:
-{structured_idea}
-"""
-
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
-    )
-
-    text = response.text.strip()
-
-    # Gemini đôi khi trả ```json block → phải remove
-    text = text.replace("```json", "").replace("```", "").strip()
-
-    try:
-        return json.loads(text)
-
-    except Exception as e:
-        print("Parsing error:", e)
-        print("Model output:", text)
-
+    if len(similar_startups) == 0:
         return {
-            "overall_score": 0,
+            "overall_score": 5,
             "scores": {},
-            "summary": "Model response was not valid JSON"
+            "summary": "No strong dataset evidence."
         }
+
+    funding = [s["funding_round_count"] for s in similar_startups]
+    exits = [s["has_acquisition"] + s["has_ipo"] for s in similar_startups]
+    success = [s["success_score"] for s in similar_startups]
+
+    market_score = np.mean(success) / 10
+    competition_score = 10 - min(len(similar_startups), 10)
+
+    feasibility = np.mean(funding)
+
+    overall = (market_score + competition_score + feasibility) / 3
+
+    return {
+        "overall_score": round(overall, 2),
+        "scores": {
+            "market_attractiveness": round(market_score, 2),
+            "competitive_pressure": round(competition_score, 2),
+            "feasibility": round(feasibility, 2)
+        },
+        "summary": "Scoring based on similar startup signals."
+    }
