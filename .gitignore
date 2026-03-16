@@ -4,3 +4,4 @@ __pycache__/
 .env
 .streamlit/
 .env.example
+data/raw/
