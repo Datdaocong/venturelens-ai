@@ -30,6 +30,10 @@ col2.metric("Investment Signal", startup["signal"])
 
 st.subheader("Radar Analysis")
 
+analysis_text = analyzer.generate_analysis(startup)
+
+st.markdown(analysis_text)
+
 fig = plot_startup_radar(startup)
 
 st.pyplot(fig)
