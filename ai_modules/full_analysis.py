@@ -16,14 +16,29 @@ def run_full_analysis(user_idea: str) -> dict:
     retrieval_summary = summarize_similar_startups(similar_startups)
 
     scoring = score_startup(structured_idea, similar_startups)
-    scenarios = simulate_future_scenarios(structured_idea, scoring, similar_startups)
-    risks = analyze_risks(structured_idea, scoring, scenarios, similar_startups)
+
+    scenarios = simulate_future_scenarios(
+        structured_idea,
+        scoring,
+        similar_startups,
+        retrieval_summary,
+    )
+
+    risks = analyze_risks(
+        structured_idea,
+        scoring,
+        scenarios,
+        similar_startups,
+        retrieval_summary,
+    )
+
     recommendations = generate_recommendations(
         structured_idea,
         scoring,
         scenarios,
         risks,
         similar_startups,
+        retrieval_summary,
     )
 
     report = generate_report(

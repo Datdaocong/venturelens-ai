@@ -46,11 +46,11 @@ def score_startup(structured_idea: dict, similar_startups: list[dict]) -> dict:
     signal_strength = _clamp(avg_similarity * 10 + exit_rate * 2)
 
     overall = round(
-        (market_attractiveness * 0.35) +
-        (feasibility * 0.25) +
-        (competitive_pressure * 0.20) +
-        (signal_strength * 0.20),
-        2
+        (market_attractiveness * 0.35)
+        + (feasibility * 0.25)
+        + (competitive_pressure * 0.20)
+        + (signal_strength * 0.20),
+        2,
     )
 
     scores = {
@@ -62,9 +62,9 @@ def score_startup(structured_idea: dict, similar_startups: list[dict]) -> dict:
 
     summary = (
         f"This score is grounded in {len(df)} similar startups. "
-        f"Peers show average success score {avg_success:.2f}, "
-        f"average funding rounds {avg_rounds:.2f}, "
-        f"and exit rate {exit_rate:.2f}."
+        f"Peers show an average success score of {avg_success:.2f}, "
+        f"average funding rounds of {avg_rounds:.2f}, "
+        f"and an exit rate of {exit_rate:.2f}."
     )
 
     return {
