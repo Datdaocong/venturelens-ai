@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 import streamlit as st
 import pandas as pd
 
 from ai_modules.full_analysis import run_full_analysis
-from ai_modules.data_loader import load_ai_dataset
-from ai_modules.similarity_bridge import retrieve_similar_startups
+from ai_modules.radar_chart import create_radar_figure
 
 
 st.set_page_config(
@@ -13,252 +14,228 @@ st.set_page_config(
 )
 
 
-@st.cache_resource
-def warm_up_system():
-    load_ai_dataset()
-    retrieve_similar_startups("AI startup", top_k=3)
-    return True
+def render_header() -> None:
+    st.title("🚀 VentureLens AI")
+    st.caption(
+        "Analyze startup ideas using real-world startup data, retrieval, scoring, risk signals, and grounded recommendations."
+    )
 
 
-def pretty_score_name(key: str) -> str:
-    mapping = {
-        "market_attractiveness": "Market Attractiveness",
-        "feasibility": "Feasibility",
-        "competitive_pressure": "Competitive Pressure",
-        "signal_strength": "Data Signal Strength",
-    }
-    return mapping.get(key, key.replace("_", " ").title())
+def render_intro() -> None:
+    with st.expander("How VentureLens works", expanded=False):
+        st.markdown(
+            """
+**Pipeline**
+1. Retrieve similar startups from the dataset  
+2. Build evidence-backed peer signals  
+3. Score the idea using data-driven metrics  
+4. Analyze risk and future scenarios  
+5. Generate grounded recommendations and summary
+"""
+        )
 
 
-def pretty_summary_name(key: str) -> str:
-    mapping = {
-        "peer_count": "Peer Startups",
-        "avg_similarity": "Avg Similarity",
-        "avg_success_score": "Avg Success Score",
-        "avg_funding_round_count": "Avg Funding Rounds",
-        "avg_total_funding_usd": "Avg Funding (USD)",
-        "acquisition_rate": "Acquisition Rate",
-        "ipo_rate": "IPO Rate",
-        "top_outcomes": "Common Outcomes",
-        "top_industries": "Top Industries",
-    }
-    return mapping.get(key, key.replace("_", " ").title())
+def render_score_cards(result: dict) -> None:
+    scoring = result["scoring"]
+    risk = result["risk"]
+    signals = result["aggregated_signals"]
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric("Overall Score", f'{scoring.get("overall_score", 0):.2f}')
+
+    with col2:
+        st.metric("Verdict", scoring.get("verdict", "Unknown"))
+
+    with col3:
+        st.metric("Risk Level", risk.get("risk_level", "Unknown"))
+
+    with col4:
+        st.metric("Peers Retrieved", signals.get("num_peers", 0))
 
 
-def pretty_outcome(value: str) -> str:
-    mapping = {
-        "ipo": "IPO",
-        "acquired": "Acquired",
-        "closed": "Closed",
-        "funded_growth": "Funded Growth",
-        "early_or_unknown": "Early / Unknown",
-        "unknown": "Unknown",
-    }
-    return mapping.get(str(value).strip().lower(), value)
+def render_radar_and_signals(result: dict) -> None:
+    scoring = result["scoring"]
+    risk = result["risk"]
+    signals = result["aggregated_signals"]
 
+    left_col, right_col = st.columns([1.25, 1])
 
-def render_kv_block(data: dict):
-    if not data:
-        st.info("No data available.")
-        return
+    with left_col:
+        st.subheader("Startup Radar")
+        radar_fig = create_radar_figure(scoring=scoring, risk=risk)
+        st.plotly_chart(radar_fig, use_container_width=True)
 
-    for key, value in data.items():
-        label = key.replace("_", " ").title()
-        if isinstance(value, list):
-            st.markdown(f"**{label}:**")
-            for item in value:
-                st.markdown(f"- {item}")
+    with right_col:
+        st.subheader("Peer Signals")
+
+        peer_df = pd.DataFrame(
+            [
+                {"Metric": "Dominant Industry", "Value": signals.get("dominant_industry", "Unknown")},
+                {"Metric": "Average Peer Success Score", "Value": signals.get("avg_success_score", 0)},
+                {"Metric": "Average Similarity", "Value": signals.get("avg_similarity", 0)},
+                {"Metric": "Max Similarity", "Value": signals.get("max_similarity", 0)},
+                {"Metric": "Success Ratio", "Value": signals.get("success_ratio", 0)},
+                {"Metric": "Failure Ratio", "Value": signals.get("failure_ratio", 0)},
+                {"Metric": "Average Funding (USD)", "Value": signals.get("avg_funding", 0)},
+            ]
+        )
+        st.dataframe(peer_df, use_container_width=True, hide_index=True)
+
+        st.subheader("Risk Flags")
+        risk_flags = risk.get("risk_flags", [])
+        if risk_flags:
+            for flag in risk_flags:
+                st.write(f"- {flag}")
         else:
-            st.markdown(f"**{label}:** {value}")
+            st.write("No major rule-based risk flags detected.")
 
 
-def render_similar_startups(similar_startups: list, retrieval_summary: dict):
-    st.subheader("Market Evidence")
+def render_similar_startups(result: dict) -> None:
+    st.subheader("Similar Startups Retrieved")
 
-    if retrieval_summary:
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Peers", retrieval_summary.get("peer_count", 0))
-        c2.metric("Similarity", retrieval_summary.get("avg_similarity", 0))
-        c3.metric("Success Score", retrieval_summary.get("avg_success_score", 0))
-        c4.metric("Funding Rounds", retrieval_summary.get("avg_funding_round_count", 0))
-
-        rows = []
-        for k, v in retrieval_summary.items():
-            if k in {"peer_count", "avg_similarity", "avg_success_score", "avg_funding_round_count"}:
-                continue
-            if isinstance(v, list):
-                v = ", ".join(map(str, v)) if v else "N/A"
-            rows.append({"Metric": pretty_summary_name(k), "Value": v})
-
-        if rows:
-            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-
-    st.subheader("Top Similar Startups")
-
+    similar_startups = result.get("similar_startups", [])
     if not similar_startups:
-        st.info("No similar startups found.")
+        st.info("No similar startups found in the dataset.")
         return
 
-    df = pd.DataFrame(similar_startups)
-    cols = [
+    df_similar = pd.DataFrame(similar_startups).copy()
+
+    preferred_order = [
         "name",
         "industry",
-        "hq_country",
-        "funding_round_count",
-        "total_funding_usd",
+        "funding",
         "success_score",
         "outcome_label",
-        "similarity",
+        "similarity_score",
+        "description",
     ]
-    cols = [c for c in cols if c in df.columns]
-    df = df[cols]
+    cols = [c for c in preferred_order if c in df_similar.columns]
+    df_similar = df_similar[cols]
 
-    if "outcome_label" in df.columns:
-        df["outcome_label"] = df["outcome_label"].apply(pretty_outcome)
-
-    df = df.rename(columns={
-        "name": "Startup",
-        "industry": "Industry",
-        "hq_country": "Country",
-        "funding_round_count": "Funding Rounds",
-        "total_funding_usd": "Total Funding (USD)",
-        "success_score": "Success Score",
-        "outcome_label": "Outcome",
-        "similarity": "Similarity",
-    })
-
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    st.dataframe(df_similar, use_container_width=True, hide_index=True)
 
 
-def render_scoring(scoring: dict):
-    st.subheader("Scoring")
+def render_summary_and_scenarios(result: dict) -> None:
+    report = result["report"]
+    scenarios = result["scenarios"]
 
-    st.metric("Overall Score", scoring.get("overall_score", "N/A"))
+    col1, col2 = st.columns([1.2, 1])
 
-    scores = scoring.get("scores", {})
-    if scores:
-        df = pd.DataFrame(
-            [{"Metric": pretty_score_name(k), "Score": v} for k, v in scores.items()]
-        )
-        st.dataframe(df, use_container_width=True, hide_index=True)
+    with col1:
+        st.subheader("Narrative Summary")
+        st.markdown(report.get("narrative_summary", "No summary generated."))
 
-    if scoring.get("summary"):
-        st.markdown("### Interpretation")
-        st.write(scoring["summary"])
+    with col2:
+        st.subheader("Future Scenarios")
+        st.caption(f"Scenario confidence: {scenarios.get('confidence', 'Unknown')}")
+        st.write(scenarios.get("summary", ""))
 
+        for label, key in [
+            ("Best Case", "best_case"),
+            ("Base Case", "base_case"),
+            ("Worst Case", "worst_case"),
+        ]:
+            scenario = scenarios.get(key, {})
 
-def render_risks(risks: dict):
-    st.subheader("Risks")
-    st.markdown(f"**Risk Level:** {risks.get('risk_level', 'N/A')}")
-    for r in risks.get("top_risks", []):
-        st.markdown(f"- {r}")
+            with st.expander(
+                f"{label}: {scenario.get('title', 'N/A')}",
+                expanded=(key == "base_case"),
+            ):
+                st.markdown(f"**Description**  \n{scenario.get('description', 'N/A')}")
+                st.markdown(
+                    f"**Why this could happen**  \n{scenario.get('why_this_could_happen', 'N/A')}"
+                )
+                st.markdown(f"**Key trigger**  \n{scenario.get('key_trigger', 'N/A')}")
 
+                st.markdown("**Warning signs**")
+                warning_signs = scenario.get("warning_signs", [])
+                if warning_signs:
+                    for item in warning_signs:
+                        st.write(f"- {item}")
+                else:
+                    st.write("- None")
 
-def render_scenarios(scenarios: dict):
-    st.subheader("Future Scenarios")
-
-    st.markdown("### Optimistic")
-    st.write(scenarios.get("optimistic", ""))
-
-    st.markdown("### Realistic")
-    st.write(scenarios.get("realistic", ""))
-
-    st.markdown("### Risky")
-    st.write(scenarios.get("risky", ""))
-
-
-def render_recommendations(recommendations: dict):
-    st.subheader("Recommendations")
-
-    st.markdown("### Verdict")
-    st.write(recommendations.get("verdict", ""))
-
-    st.markdown("### Next Steps")
-    for step in recommendations.get("next_steps", []):
-        st.markdown(f"- {step}")
-
-    st.markdown("### MVP Focus")
-    st.write(recommendations.get("mvp_focus", ""))
-
-    st.markdown("### Validation Focus")
-    st.write(recommendations.get("validation_focus", ""))
-
-    if recommendations.get("strategic_note"):
-        st.markdown("### Strategic Note")
-        st.write(recommendations.get("strategic_note", ""))
+                st.markdown(
+                    f"**Strategic action**  \n{scenario.get('strategic_action', 'N/A')}"
+                )
 
 
-def render_report(report: str):
-    st.subheader("Full Report")
-    st.markdown(report if report else "No report generated.")
+def render_recommendations(result: dict) -> None:
+    recommendations = result.get("recommendations", [])
 
-
-warm_up_system()
-
-st.title("🚀 VentureLens AI")
-st.caption("AI-powered startup idea analysis grounded in real startup data")
-
-st.markdown(
-    """
-VentureLens helps you:
-
-- Structure your startup idea
-- Find similar real-world startups
-- Score opportunity potential
-- Analyze risks
-- Simulate future scenarios
-- Generate actionable recommendations
-"""
-)
-
-idea = st.text_area(
-    "Describe your startup idea",
-    height=180,
-    placeholder="Example: An AI copilot that helps founders prepare investor updates, fundraising narratives, and KPI summaries."
-)
-
-if st.button("Analyze Idea", use_container_width=True):
-    if not idea.strip():
-        st.warning("Please enter a startup idea.")
+    st.subheader("Recommended Next Steps")
+    if recommendations:
+        for rec in recommendations:
+            st.write(f"- {rec}")
     else:
-        with st.spinner("Analyzing your idea..."):
+        st.write("No recommendations generated.")
+
+
+def render_evidence(result: dict) -> None:
+    report = result["report"]
+
+    with st.expander("View Retrieval Evidence", expanded=False):
+        st.text(report.get("evidence_text", "No evidence available."))
+
+
+def render_footer() -> None:
+    st.markdown("---")
+    st.caption(
+        "VentureLens AI uses dataset-grounded retrieval and scoring. Narrative output is based on peer evidence rather than pure LLM guessing."
+    )
+
+
+def main() -> None:
+    render_header()
+    render_intro()
+
+    default_idea = (
+        "An AI platform that helps university students detect academic integrity risks, "
+        "improve writing originality, and receive structured feedback before submission."
+    )
+
+    user_idea = st.text_area(
+        "Enter your startup idea",
+        value=default_idea,
+        height=180,
+        placeholder="Describe your startup idea, product, target user, and problem you want to solve...",
+    )
+
+    top_k = st.slider("Number of similar startups to retrieve", min_value=3, max_value=10, value=5)
+
+    analyze_clicked = st.button("Analyze Startup Idea", type="primary", use_container_width=True)
+
+    if analyze_clicked:
+        if not user_idea.strip():
+            st.warning("Please enter a startup idea first.")
+            st.stop()
+
+        with st.spinner("Analyzing with VentureLens AI..."):
             try:
-                result = run_full_analysis(idea)
-
-                tabs = st.tabs([
-                    "Structured Idea",
-                    "Similar Startups",
-                    "Scoring",
-                    "Risks",
-                    "Scenarios",
-                    "Recommendations",
-                    "Full Report",
-                ])
-
-                with tabs[0]:
-                    st.subheader("Structured Idea")
-                    render_kv_block(result.get("structured_idea", {}))
-
-                with tabs[1]:
-                    render_similar_startups(
-                        result.get("similar_startups", []),
-                        result.get("retrieval_summary", {}),
-                    )
-
-                with tabs[2]:
-                    render_scoring(result.get("scoring", {}))
-
-                with tabs[3]:
-                    render_risks(result.get("risks", {}))
-
-                with tabs[4]:
-                    render_scenarios(result.get("scenarios", {}))
-
-                with tabs[5]:
-                    render_recommendations(result.get("recommendations", {}))
-
-                with tabs[6]:
-                    render_report(result.get("report", ""))
-
+                result = run_full_analysis(user_idea=user_idea, top_k=top_k)
             except Exception as e:
-                st.error(f"Error: {e}")
+                st.error(f"Analysis failed: {e}")
+                st.stop()
+
+        render_score_cards(result)
+        st.markdown("---")
+
+        render_radar_and_signals(result)
+        st.markdown("---")
+
+        render_similar_startups(result)
+        st.markdown("---")
+
+        render_summary_and_scenarios(result)
+        st.markdown("---")
+
+        render_recommendations(result)
+        render_evidence(result)
+
+    render_footer()
+
+
+if __name__ == "__main__":
+    main()

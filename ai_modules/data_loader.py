@@ -1,15 +1,28 @@
+from __future__ import annotations
+
 import os
 from pathlib import Path
+from typing import Optional
+
 import pandas as pd
 
+
+# ===== PATH CONFIG =====
 DATA_DIR = Path("data/processed")
+
 SMALL_PATH = DATA_DIR / "ai_startup_features_small.csv"
 FULL_PATH = DATA_DIR / "ai_startup_features.csv"
 
-_df_cache = {}
+
+# ===== CACHE =====
+_df_cache: Optional[pd.DataFrame] = None
 
 
 def _resolve_data_path() -> Path:
+    """
+    Choose dataset based on env variable DATA_MODE
+    default = small
+    """
     mode = os.getenv("DATA_MODE", "small").strip().lower()
 
     if mode == "full":
@@ -24,64 +37,75 @@ def _resolve_data_path() -> Path:
             return FULL_PATH
 
     raise FileNotFoundError(
-        "No AI-ready dataset found. Expected one of:\n"
+        "No dataset found. Expected one of:\n"
         f"- {SMALL_PATH}\n"
         f"- {FULL_PATH}"
     )
 
 
-def _postprocess(df: pd.DataFrame) -> pd.DataFrame:
-    text_cols = [
-        "startup_id",
-        "name",
-        "description",
-        "industry",
-        "sub_industry",
-        "hq_country",
-        "hq_city",
-        "website",
-        "status",
-        "search_text",
-        "ai_context",
-        "outcome_label",
-    ]
+def _basic_clean(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Basic cleaning + ensure required columns exist
+    """
 
-    numeric_cols = [
-        "founded_year",
-        "funding_round_count",
-        "total_funding_usd",
-        "acquisition_count",
-        "ipo_count",
-        "has_acquisition",
-        "has_ipo",
-        "is_success",
-        "success_score",
-        "log_total_funding",
-        "startup_age_proxy",
-    ]
+    df = df.copy()
 
-    for col in text_cols:
-        if col not in df.columns:
-            df[col] = ""
-        df[col] = df[col].fillna("").astype(str)
+    # ===== TEXT =====
+    if "description" in df.columns:
+        df["description"] = df["description"].fillna("").astype(str)
+    else:
+        df["description"] = ""
 
-    for col in numeric_cols:
-        if col not in df.columns:
-            df[col] = 0
-        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+    if "industry" in df.columns:
+        df["industry"] = df["industry"].fillna("Unknown").astype(str)
+    else:
+        df["industry"] = "Unknown"
+
+    if "sub_industry" in df.columns:
+        df["sub_industry"] = df["sub_industry"].fillna("").astype(str)
+
+    if "ai_context" in df.columns:
+        df["ai_context"] = df["ai_context"].fillna("").astype(str)
+
+    # ===== NAME =====
+    if "name" not in df.columns:
+        df["name"] = [f"Startup {i}" for i in range(len(df))]
+
+    # ===== FUNDING =====
+    if "total_funding_usd" not in df.columns:
+        df["total_funding_usd"] = 0
+    df["total_funding_usd"] = pd.to_numeric(df["total_funding_usd"], errors="coerce").fillna(0)
+
+    # ===== SUCCESS SCORE =====
+    if "success_score" not in df.columns:
+        df["success_score"] = 0
+    df["success_score"] = pd.to_numeric(df["success_score"], errors="coerce").fillna(0)
+
+    # ===== OUTCOME =====
+    if "outcome_label" not in df.columns:
+        df["outcome_label"] = "unknown"
+    df["outcome_label"] = df["outcome_label"].fillna("unknown").astype(str)
 
     return df
 
 
-def load_ai_dataset(force_reload: bool = False) -> pd.DataFrame:
+# ===== MAIN FUNCTION =====
+def load_dataset(force_reload: bool = False) -> pd.DataFrame:
+    """
+    Load + cache dataset
+    """
+
+    global _df_cache
+
+    if _df_cache is not None and not force_reload:
+        return _df_cache
+
     path = _resolve_data_path()
-    cache_key = str(path.resolve())
 
-    if force_reload or cache_key not in _df_cache:
-        print(f"[DataLoader] Loading dataset from: {path}")
-        df = pd.read_csv(path, low_memory=False)
-        df = _postprocess(df)
-        _df_cache[cache_key] = df
-        print(f"[DataLoader] Loaded shape: {df.shape}")
+    df = pd.read_csv(path)
 
-    return _df_cache[cache_key]
+    df = _basic_clean(df)
+
+    _df_cache = df
+
+    return df

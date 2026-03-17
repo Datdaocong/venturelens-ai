@@ -86,33 +86,36 @@ def _initialize():
 
 
 # ===== MAIN FUNCTION =====
-def retrieve_similar_startups(user_idea: str, top_k: int = 5) -> pd.DataFrame:
-    """
-    Input: user idea text
-    Output: DataFrame of top-k similar startups with similarity_score
-    """
-
+def retrieve_similar_startups(user_idea: str, top_k: int = 5, min_similarity: float = 0.12) -> pd.DataFrame:
     _initialize()
 
     if not user_idea or not user_idea.strip():
         raise ValueError("User idea is empty.")
 
     query_vec = _vectorizer.transform([user_idea])
-
     similarities = cosine_similarity(query_vec, _tfidf_matrix).flatten()
 
-    # Get top indices
-    top_indices = similarities.argsort()[::-1][:top_k]
+    top_indices = similarities.argsort()[::-1]
+    filtered_indices = [idx for idx in top_indices if similarities[idx] >= min_similarity][:top_k]
 
-    result_df = _df_cache.iloc[top_indices].copy()
+    if not filtered_indices:
+        return pd.DataFrame(columns=[
+            "name",
+            "description",
+            "industry",
+            "sub_industry",
+            "hq_country",
+            "hq_city",
+            "total_funding_usd",
+            "success_score",
+            "outcome_label",
+            "similarity_score",
+        ])
 
-    # ===== IMPORTANT: STANDARDIZED COLUMN =====
-    result_df["similarity_score"] = similarities[top_indices]
-
-    # Sort again just to be safe
+    result_df = _df_cache.iloc[filtered_indices].copy()
+    result_df["similarity_score"] = similarities[filtered_indices]
     result_df = result_df.sort_values("similarity_score", ascending=False)
 
-    # ===== CLEAN OUTPUT =====
     keep_cols = [
         "name",
         "description",
@@ -125,10 +128,7 @@ def retrieve_similar_startups(user_idea: str, top_k: int = 5) -> pd.DataFrame:
         "outcome_label",
         "similarity_score",
     ]
-
     existing_cols = [col for col in keep_cols if col in result_df.columns]
-    result_df = result_df[existing_cols]
-
-    result_df = result_df.reset_index(drop=True)
+    result_df = result_df[existing_cols].reset_index(drop=True)
 
     return result_df

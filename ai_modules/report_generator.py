@@ -2,6 +2,27 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+def _format_scenario_block(label: str, scenario: Dict[str, Any]) -> str:
+    warning_lines = scenario.get("warning_signs", [])
+    warning_text = "\n".join(f"- {item}" for item in warning_lines) if warning_lines else "- None"
+
+    return f"""
+### {label}: {scenario.get("title", "N/A")}
+**Description**  
+{scenario.get("description", "N/A")}
+
+**Why this could happen**  
+{scenario.get("why_this_could_happen", "N/A")}
+
+**Key trigger**  
+{scenario.get("key_trigger", "N/A")}
+
+**Warning signs**  
+{warning_text}
+
+**Strategic action**  
+{scenario.get("strategic_action", "N/A")}
+""".strip()
 
 def _format_currency(value: float) -> str:
     try:
@@ -93,18 +114,22 @@ def _build_narrative_summary(
         f"If execution quality is above average, the concept may still earn meaningful traction."
     )
 
+
     risk_lines = []
     for flag in risk.get("risk_flags", []):
         risk_lines.append(f"- {flag}")
     if not risk_lines:
         risk_lines.append("- No major rule-based risk flags were triggered, but uncertainty remains.")
 
-    scenario_lines = [
-        f"- Best case: {scenarios.get('best_case', '')}",
-        f"- Base case: {scenarios.get('base_case', '')}",
-        f"- Worst case: {scenarios.get('worst_case', '')}",
-    ]
-
+    scenario_text = "\n\n".join(
+        [
+            f"**Scenario Confidence:** {scenarios.get('confidence', 'Unknown')}",
+            scenarios.get("summary", ""),
+            _format_scenario_block("Best Case", scenarios.get("best_case", {})),
+            _format_scenario_block("Base Case", scenarios.get("base_case", {})),
+            _format_scenario_block("Worst Case", scenarios.get("worst_case", {})),
+        ]
+    )
     recommendation_lines = [f"- {item}" for item in recommendations] if recommendations else ["- No recommendation generated."]
 
     similar_text = _top_similar_summary(similar_startups, top_n=3)
@@ -127,7 +152,7 @@ Risk Level: **{risk_level}**
 {similar_text}
 
 ## Future Scenarios
-{chr(10).join(scenario_lines)}
+{scenario_text}
 
 ## Recommended Next Steps
 {chr(10).join(recommendation_lines)}
