@@ -1,157 +1,132 @@
 import pandas as pd
+import numpy as np
 from pathlib import Path
 
-STARTUPS_PATH = Path("data/interim/startups_normalized.csv")
-FUNDING_PATH = Path("data/raw/funding_rounds.csv")
-ACQ_PATH = Path("data/raw/acquisitions.csv")
-IPOS_PATH = Path("data/raw/ipos.csv")
+SEARCH_PATH = Path("data/processed/startup_search_index.csv")
+SIGNALS_PATH = Path("data/processed/startup_success_signals.csv")
 OUT_PATH = Path("data/processed/ai_startup_features.csv")
 
-# ----------------------------
-# load startups master
-# ----------------------------
-startups = pd.read_csv(STARTUPS_PATH, low_memory=False)
-startups["startup_id"] = startups["startup_id"].astype(str)
+search_df = pd.read_csv(SEARCH_PATH, low_memory=False)
+signals_df = pd.read_csv(SIGNALS_PATH, low_memory=False)
 
-signals = startups[["startup_id", "name", "industry", "status"]].copy()
+search_df["startup_id"] = search_df["startup_id"].astype(str)
+signals_df["startup_id"] = signals_df["startup_id"].astype(str)
 
-# ----------------------------
-# funding rounds
-# ----------------------------
-funding = pd.read_csv(FUNDING_PATH, encoding="latin1", low_memory=False)
-funding.columns = [c.strip() for c in funding.columns]
+merge_cols = [
+    "startup_id",
+    "funding_round_count",
+    "total_funding_usd",
+    "has_acquisition",
+    "has_ipo",
+    "success_score",
+    "outcome_label",
+]
+existing_merge_cols = [c for c in merge_cols if c in signals_df.columns]
 
-# map startup id column
-funding_startup_col = None
-for c in ["object_id", "startup_id", "company_id", "funded_object_id"]:
-    if c in funding.columns:
-        funding_startup_col = c
-        break
-
-# map amount column
-funding_amount_col = None
-for c in ["raised_amount_usd", "amount_usd", "raised_usd", "funding_amount_usd"]:
-    if c in funding.columns:
-        funding_amount_col = c
-        break
-
-if funding_startup_col is not None:
-    funding[funding_startup_col] = funding[funding_startup_col].astype(str)
-
-    funding_round_count = (
-        funding.groupby(funding_startup_col)
-        .size()
-        .reset_index(name="funding_round_count")
-    )
-
-    if funding_amount_col is not None:
-        funding[funding_amount_col] = pd.to_numeric(funding[funding_amount_col], errors="coerce")
-        total_funding = (
-            funding.groupby(funding_startup_col)[funding_amount_col]
-            .sum(min_count=1)
-            .reset_index(name="total_funding_usd")
-        )
-    else:
-        total_funding = funding_round_count[[funding_startup_col]].copy()
-        total_funding["total_funding_usd"] = pd.NA
-
-    funding_signals = funding_round_count.merge(total_funding, on=funding_startup_col, how="left")
-    funding_signals = funding_signals.rename(columns={funding_startup_col: "startup_id"})
-else:
-    funding_signals = pd.DataFrame(columns=["startup_id", "funding_round_count", "total_funding_usd"])
-
-# ----------------------------
-# acquisitions
-# ----------------------------
-acq = pd.read_csv(ACQ_PATH, encoding="latin1", low_memory=False)
-acq.columns = [c.strip() for c in acq.columns]
-
-acq_target_col = None
-for c in ["acquired_object_id", "acquired_startup_id", "startup_id", "object_id"]:
-    if c in acq.columns:
-        acq_target_col = c
-        break
-
-if acq_target_col is not None:
-    acq[acq_target_col] = acq[acq_target_col].astype(str)
-    acq_signals = (
-        acq.groupby(acq_target_col)
-        .size()
-        .reset_index(name="acquisition_count")
-        .rename(columns={acq_target_col: "startup_id"})
-    )
-    acq_signals["has_acquisition"] = 1
-else:
-    acq_signals = pd.DataFrame(columns=["startup_id", "acquisition_count", "has_acquisition"])
-
-# ----------------------------
-# ipos
-# ----------------------------
-ipos = pd.read_csv(IPOS_PATH, encoding="latin1", low_memory=False)
-ipos.columns = [c.strip() for c in ipos.columns]
-
-ipo_startup_col = None
-for c in ["object_id", "startup_id", "company_id"]:
-    if c in ipos.columns:
-        ipo_startup_col = c
-        break
-
-if ipo_startup_col is not None:
-    ipos[ipo_startup_col] = ipos[ipo_startup_col].astype(str)
-    ipo_signals = (
-        ipos.groupby(ipo_startup_col)
-        .size()
-        .reset_index(name="ipo_count")
-        .rename(columns={ipo_startup_col: "startup_id"})
-    )
-    ipo_signals["has_ipo"] = 1
-else:
-    ipo_signals = pd.DataFrame(columns=["startup_id", "ipo_count", "has_ipo"])
-
-# ----------------------------
-# merge all signals
-# ----------------------------
-signals = signals.merge(funding_signals, on="startup_id", how="left")
-signals = signals.merge(acq_signals, on="startup_id", how="left")
-signals = signals.merge(ipo_signals, on="startup_id", how="left")
-
-# fill nulls
-signals["funding_round_count"] = signals["funding_round_count"].fillna(0).astype(int)
-signals["total_funding_usd"] = pd.to_numeric(signals["total_funding_usd"], errors="coerce").fillna(0)
-signals["acquisition_count"] = signals["acquisition_count"].fillna(0).astype(int)
-signals["ipo_count"] = signals["ipo_count"].fillna(0).astype(int)
-signals["has_acquisition"] = signals["has_acquisition"].fillna(0).astype(int)
-signals["has_ipo"] = signals["has_ipo"].fillna(0).astype(int)
-
-# ----------------------------
-# success score (simple heuristic)
-# ----------------------------
-signals["success_score"] = (
-    signals["funding_round_count"] * 0.2
-    + (signals["total_funding_usd"] / 1_000_000).clip(upper=50) * 0.05
-    + signals["has_acquisition"] * 3
-    + signals["has_ipo"] * 5
+df = search_df.merge(
+    signals_df[existing_merge_cols],
+    on="startup_id",
+    how="left",
 )
 
-# optional outcome label
-def outcome_label(row):
-    if row["has_ipo"] == 1:
-        return "ipo"
-    if row["has_acquisition"] == 1:
-        return "acquired"
-    if row["status"] == "closed":
-        return "closed"
-    if row["funding_round_count"] >= 3 or row["total_funding_usd"] >= 10_000_000:
-        return "funded_growth"
-    return "early_or_unknown"
+text_cols = [
+    "name",
+    "description",
+    "industry",
+    "sub_industry",
+    "hq_country",
+    "hq_city",
+    "status",
+]
 
-signals["outcome_label"] = signals.apply(outcome_label, axis=1)
+for col in text_cols:
+    if col not in df.columns:
+        df[col] = ""
+    df[col] = df[col].fillna("").astype(str).str.strip()
+
+num_cols = [
+    "founded_year",
+    "funding_round_count",
+    "total_funding_usd",
+    "has_acquisition",
+    "has_ipo",
+    "success_score",
+]
+for col in num_cols:
+    if col not in df.columns:
+        df[col] = 0
+
+df["founded_year"] = pd.to_numeric(df["founded_year"], errors="coerce")
+df["funding_round_count"] = pd.to_numeric(df["funding_round_count"], errors="coerce").fillna(0).astype(int)
+df["total_funding_usd"] = pd.to_numeric(df["total_funding_usd"], errors="coerce").fillna(0.0)
+df["has_acquisition"] = pd.to_numeric(df["has_acquisition"], errors="coerce").fillna(0).astype(int)
+df["has_ipo"] = pd.to_numeric(df["has_ipo"], errors="coerce").fillna(0).astype(int)
+df["success_score"] = pd.to_numeric(df["success_score"], errors="coerce").fillna(0.0)
+
+if "outcome_label" not in df.columns:
+    df["outcome_label"] = "early_or_unknown"
+df["outcome_label"] = df["outcome_label"].fillna("early_or_unknown").astype(str)
+
+df["search_text"] = (
+    df["name"] + " | " +
+    df["industry"] + " | " +
+    df["sub_industry"] + " | " +
+    df["description"] + " | " +
+    df["hq_country"] + " | " +
+    df["hq_city"]
+).str.lower().str.strip()
+
+df["log_total_funding"] = np.log10(df["total_funding_usd"] + 1)
+df["startup_age_proxy"] = 2026 - df["founded_year"]
+df["startup_age_proxy"] = df["startup_age_proxy"].fillna(-1)
+
+df["ai_context"] = (
+    "startup: " + df["name"] +
+    " | industry: " + df["industry"] +
+    " | sub_industry: " + df["sub_industry"] +
+    " | country: " + df["hq_country"] +
+    " | city: " + df["hq_city"] +
+    " | founded_year: " + df["founded_year"].fillna(-1).astype(int).astype(str) +
+    " | status: " + df["status"] +
+    " | funding_round_count: " + df["funding_round_count"].astype(str) +
+    " | total_funding_usd: " + df["total_funding_usd"].astype(int).astype(str) +
+    " | has_acquisition: " + df["has_acquisition"].astype(str) +
+    " | has_ipo: " + df["has_ipo"].astype(str) +
+    " | outcome_label: " + df["outcome_label"] +
+    " | description: " + df["description"]
+)
+
+final_cols = [
+    "startup_id",
+    "name",
+    "description",
+    "industry",
+    "sub_industry",
+    "hq_country",
+    "hq_city",
+    "founded_year",
+    "status",
+    "search_text",
+    "funding_round_count",
+    "total_funding_usd",
+    "log_total_funding",
+    "has_acquisition",
+    "has_ipo",
+    "success_score",
+    "outcome_label",
+    "startup_age_proxy",
+    "ai_context",
+]
+
+for col in final_cols:
+    if col not in df.columns:
+        df[col] = ""
+
+df = df[final_cols].copy()
 
 OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-signals.to_csv(OUT_PATH, index=False)
+df.to_csv(OUT_PATH, index=False)
 
 print("Saved:", OUT_PATH)
-print("Shape:", signals.shape)
-print(signals.head())
-print("\nOutcome distribution:")
-print(signals["outcome_label"].value_counts(dropna=False).head(10))
+print("Shape:", df.shape)
+print(df.head())

@@ -1,43 +1,80 @@
 import streamlit as st
+import pandas as pd
 
-from src.data.load_data import load_startup_data
-from src.analysis.startup_analyzer import StartupAnalyzer
-from src.visualization.radar_chart import plot_startup_radar
+from ai_modules.full_analysis import run_full_analysis
 
-st.title("🚀 VentureLens - Startup Analyzer")
+st.set_page_config(page_title="VentureLens AI", page_icon="🚀", layout="wide")
 
-df = load_startup_data()
+st.title("🚀 VentureLens AI")
+st.caption("AI startup idea analysis grounded in real startup dataset evidence")
 
-analyzer = StartupAnalyzer(df)
-df = analyzer.calculate_score()
-df = analyzer.investment_signal()
-
-startup_list = df["startup_name"].tolist()
-
-selected = st.selectbox(
-    "Select a startup",
-    startup_list
+idea = st.text_area(
+    "Describe your startup idea",
+    height=180,
+    placeholder="Example: An AI copilot that helps startup founders prepare investor updates, fundraising narratives, and KPI summaries."
 )
 
-startup = df[df["startup_name"] == selected].iloc[0]
+if st.button("Analyze"):
+    if not idea.strip():
+        st.warning("Please enter a startup idea first.")
+    else:
+        with st.spinner("Analyzing your idea..."):
+            try:
+                result = run_full_analysis(idea)
 
-st.subheader("Startup Evaluation")
+                tabs = st.tabs([
+                    "Structured Idea",
+                    "Similar Startups",
+                    "Scoring",
+                    "Risks & Scenarios",
+                    "Recommendations",
+                    "Report",
+                ])
 
-col1, col2 = st.columns(2)
+                with tabs[0]:
+                    st.json(result["structured_idea"])
 
-col1.metric("Startup Score", round(startup["startup_score"],2))
-col2.metric("Investment Signal", startup["signal"])
+                with tabs[1]:
+                    similar = result.get("similar_startups", [])
+                    retrieval_summary = result.get("retrieval_summary", {})
 
-st.subheader("Radar Analysis")
+                    st.subheader("Retrieval Summary")
+                    st.json(retrieval_summary)
 
-analysis_text = analyzer.generate_analysis(startup)
+                    if similar:
+                        df = pd.DataFrame(similar)
+                        preferred_cols = [
+                            "name",
+                            "industry",
+                            "hq_country",
+                            "funding_round_count",
+                            "total_funding_usd",
+                            "success_score",
+                            "outcome_label",
+                            "similarity",
+                        ]
+                        existing_cols = [c for c in preferred_cols if c in df.columns]
+                        st.dataframe(df[existing_cols] if existing_cols else df, use_container_width=True)
+                    else:
+                        st.info("No similar startups found.")
 
-st.markdown(analysis_text)
+                with tabs[2]:
+                    st.json(result["scoring"])
 
-fig = plot_startup_radar(startup)
+                with tabs[3]:
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.subheader("Risks")
+                        st.json(result["risks"])
+                    with col2:
+                        st.subheader("Scenarios")
+                        st.json(result["scenarios"])
 
-st.pyplot(fig)
+                with tabs[4]:
+                    st.json(result["recommendations"])
 
-st.subheader("Startup Data")
+                with tabs[5]:
+                    st.markdown(result["report"])
 
-st.dataframe(startup)
+            except Exception as e:
+                st.error(f"Error while analyzing idea: {e}")

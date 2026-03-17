@@ -1,55 +1,38 @@
-import json
-from utils.gemini_client import get_gemini_client
+from __future__ import annotations
 
 
-def analyze_risks(structured_idea: dict, scoring: dict, scenarios: dict) -> dict:
-    client = get_gemini_client()
+def analyze_risks(
+    structured_idea: dict,
+    scoring: dict,
+    scenarios: dict | None = None,
+    similar_startups: list[dict] | None = None,
+) -> dict:
+    similar_startups = similar_startups or []
+    scores = scoring.get("scores", {})
 
-    prompt = f"""
-You are a startup risk analyst.
+    risks = []
 
-Based on the startup idea, scoring, and future scenarios below, identify the main risks and dangerous assumptions.
+    market_score = scores.get("market_attractiveness", 5)
+    feasibility = scores.get("feasibility", 5)
+    competition = scores.get("competitive_pressure", 5)
+    signal_strength = scores.get("signal_strength", 5)
 
-Return ONLY valid JSON in this format:
+    if competition < 4:
+        risks.append("The comparable startup cluster appears crowded, so differentiation may be difficult.")
 
-{{
-  "top_risks": ["string", "string", "string"],
-  "dangerous_assumptions": ["string", "string", "string"],
-  "risk_summary": "string"
-}}
+    if feasibility < 5:
+        risks.append("Execution may be difficult because similar startups needed significant time or funding to mature.")
 
-Rules:
-- top_risks should be the 3 biggest business/product risks.
-- dangerous_assumptions should be the 3 assumptions most likely to break the startup.
-- risk_summary should be short and practical.
-- Return only JSON, no markdown.
+    if market_score < 5:
+        risks.append("Comparable startups show weak market signals, suggesting uncertain demand or poor category dynamics.")
 
-Startup idea:
-{structured_idea}
+    if signal_strength < 5:
+        risks.append("The retrieval evidence is weak, so conclusions should be treated cautiously.")
 
-Startup scoring:
-{scoring}
+    if not risks:
+        risks.append("No major red flags from the peer set, but execution and differentiation still matter.")
 
-Future scenarios:
-{scenarios}
-"""
-
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
-    )
-
-    text = response.text.strip()
-    text = text.replace("```json", "").replace("```", "").strip()
-
-    try:
-        return json.loads(text)
-    except Exception as e:
-        print("Risk parsing error:", e)
-        print("Risk raw output:", text)
-
-        return {
-            "top_risks": ["Could not analyze risks."],
-            "dangerous_assumptions": ["Model response was not valid JSON."],
-            "risk_summary": "Risk analysis failed."
-        }
+    return {
+        "top_risks": risks,
+        "risk_level": "high" if len(risks) >= 3 else "medium" if len(risks) == 2 else "low",
+    }

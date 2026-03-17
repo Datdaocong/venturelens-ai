@@ -45,3 +45,33 @@ class StartupAnalyzer:
 
         return self.df
     
+    def generate_analysis(self, startup_row):
+
+        score = startup_row["startup_score"]
+        signal = startup_row["signal"]
+
+        if signal == "STRONG INVEST":
+            verdict = "This startup shows strong fundamentals and is a promising investment opportunity."
+
+        elif signal == "WATCHLIST":
+            verdict = "This startup has potential but requires further monitoring before investment."
+
+        else:
+            verdict = "This startup currently does not meet investment criteria."
+
+        analysis = f"""
+        **Startup:** {startup_row['startup_name']}
+
+        **Overall Score:** {score:.2f}
+
+        **Investment Signal:** {signal}
+
+        **Product Strength:** {startup_row['product_score']:.2f}  
+        **Team Strength:** {startup_row['team_score']:.2f}  
+        **Traction:** {startup_row['traction_score']:.2f}  
+        **Innovation:** {startup_row['innovation_score']:.2f}
+
+        **Verdict:** {verdict}
+        """
+
+        return analysis
