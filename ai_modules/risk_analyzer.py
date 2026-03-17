@@ -1,68 +1,65 @@
 from __future__ import annotations
 
+from typing import Any, Dict, List
 
-def analyze_risks(
-    structured_idea: dict,
-    scoring: dict,
-    scenarios: dict | None = None,
-    similar_startups: list[dict] | None = None,
-    retrieval_summary: dict | None = None,
-) -> dict:
-    similar_startups = similar_startups or []
-    retrieval_summary = retrieval_summary or {}
-    scores = scoring.get("scores", {})
 
-    risks = []
-    evidence = []
+def analyze_risk(
+    user_idea: str,
+    similar_startups: List[Dict[str, Any]],
+    scoring: Dict[str, Any],
+    aggregated_signals: Dict[str, Any],
+) -> Dict[str, Any]:
+    failure_ratio = float(aggregated_signals.get("failure_ratio", 0))
+    success_ratio = float(aggregated_signals.get("success_ratio", 0))
+    avg_similarity = float(aggregated_signals.get("avg_similarity", 0))
+    avg_success_score = float(aggregated_signals.get("avg_success_score", 0))
+    num_peers = int(aggregated_signals.get("num_peers", 0))
+    overall_score = float(scoring.get("overall_score", 50))
 
-    market_score = float(scores.get("market_attractiveness", 5))
-    feasibility = float(scores.get("feasibility", 5))
-    competitive_pressure = float(scores.get("competitive_pressure", 5))
-    signal_strength = float(scores.get("signal_strength", 5))
+    risk_flags: List[str] = []
+    risk_breakdown: Dict[str, str] = {}
 
-    peer_count = int(retrieval_summary.get("peer_count", len(similar_startups)))
-    avg_success = float(retrieval_summary.get("avg_success_score", 0))
-    avg_rounds = float(retrieval_summary.get("avg_funding_round_count", 0))
-    acquisition_rate = float(retrieval_summary.get("acquisition_rate", 0))
-    ipo_rate = float(retrieval_summary.get("ipo_rate", 0))
-    top_outcomes = retrieval_summary.get("top_outcomes", [])
+    if num_peers < 3:
+        risk_flags.append("Limited peer evidence in dataset")
+        risk_breakdown["evidence_risk"] = "Few similar startups were retrieved, so confidence is lower."
 
-    if competitive_pressure < 4:
-        risks.append("The comparable startup cluster appears crowded, so differentiation may be difficult.")
-        evidence.append("Competitive pressure is high in the retrieved peer set.")
+    if avg_similarity < 0.20:
+        risk_flags.append("Weak match with known startup patterns")
+        risk_breakdown["retrieval_risk"] = "Retrieved peers are not strongly similar to the user idea."
 
-    if market_score < 5:
-        risks.append("Peer startups show weak market signals, which may indicate uncertain demand.")
-        evidence.append(f"Average peer success score is only {avg_success:.2f}.")
+    if failure_ratio >= 0.50:
+        risk_flags.append("High failure rate among similar startups")
+        risk_breakdown["market_risk"] = "Many similar startups in the dataset ended with failed outcomes."
 
-    if feasibility < 5:
-        risks.append("Execution may be difficult because similar startups often required multiple funding rounds to mature.")
-        evidence.append(f"Average peer funding rounds: {avg_rounds:.2f}.")
+    if avg_success_score < 45:
+        risk_flags.append("Low average peer success score")
+        risk_breakdown["quality_risk"] = "Peer group itself has weak historical performance."
 
-    if signal_strength < 5:
-        risks.append("The evidence signal is not yet strong, so conclusions should be treated with caution.")
-        evidence.append("Similarity signal strength is relatively weak.")
+    if overall_score < 45:
+        risk_flags.append("Low evidence-backed viability score")
+        risk_breakdown["viability_risk"] = "Combined scoring signals suggest weak startup viability."
 
-    if peer_count >= 5 and acquisition_rate == 0 and ipo_rate == 0:
-        risks.append("The peer cluster shows weak exit patterns, suggesting limited upside.")
-        evidence.append("No strong acquisition or IPO pattern is visible in the peer set.")
+    if success_ratio >= 0.60 and failure_ratio <= 0.20 and avg_similarity >= 0.30:
+        mitigating_factors = [
+            "Peer group includes a healthy share of successful examples",
+            "Retrieved peers have reasonable similarity to the current idea",
+        ]
+    else:
+        mitigating_factors = [
+            "More validation may improve confidence in the idea",
+            "Sharper positioning could separate the idea from weaker peers",
+        ]
 
-    if "closed" in top_outcomes:
-        risks.append("A meaningful share of comparable startups appear to end with weak outcomes or shutdowns.")
-        evidence.append(f"Common peer outcomes include: {', '.join(top_outcomes)}.")
-
-    if not risks:
-        risks.append("No major red flags were found in the peer set, but execution and differentiation remain critical.")
-        evidence.append("Peer evidence looks reasonably healthy.")
-
-    risk_level = "Low"
-    if len(risks) >= 4:
+    if len(risk_flags) >= 4:
         risk_level = "High"
-    elif len(risks) >= 2:
+    elif len(risk_flags) >= 2:
         risk_level = "Medium"
+    else:
+        risk_level = "Low"
 
     return {
         "risk_level": risk_level,
-        "top_risks": risks,
-        "evidence": evidence,
+        "risk_flags": risk_flags,
+        "risk_breakdown": risk_breakdown,
+        "mitigating_factors": mitigating_factors,
     }

@@ -1,63 +1,69 @@
 from __future__ import annotations
 
-from ai_modules.idea_structurer import structure_startup_idea
-from ai_modules.similarity_bridge import retrieve_similar_startups, summarize_similar_startups
-from ai_modules.scoring_engine import score_startup
-from ai_modules.risk_analyzer import analyze_risks
-from ai_modules.scenario_simulator import simulate_future_scenarios
+from typing import Any, Dict
+
+from ai_modules.rag_context_builder import build_rag_context
+from ai_modules.scoring_engine import score_startup_idea
+from ai_modules.risk_analyzer import analyze_risk
+from ai_modules.scenario_simulator import simulate_scenarios
 from ai_modules.recommendation_engine import generate_recommendations
-from ai_modules.report_generator import generate_report
+from ai_modules.report_generator import generate_final_report
 
 
-def run_full_analysis(user_idea: str) -> dict:
-    structured_idea = structure_startup_idea(user_idea)
+def run_full_analysis(user_idea: str, top_k: int = 5) -> Dict[str, Any]:
+    """
+    Main VentureLens pipeline:
+    User Idea -> Retrieval -> RAG Context -> Scoring -> Risk -> Scenarios -> Recommendations -> Final Report
+    """
 
-    similar_startups = retrieve_similar_startups(user_idea, top_k=5)
-    retrieval_summary = summarize_similar_startups(similar_startups)
+    rag_context = build_rag_context(user_idea=user_idea, top_k=top_k)
+    similar_startups = rag_context.get("similar_startups", [])
+    aggregated_signals = rag_context.get("aggregated_signals", {})
 
-    scoring = score_startup(structured_idea, similar_startups)
-
-    scenarios = simulate_future_scenarios(
-        structured_idea,
-        scoring,
-        similar_startups,
-        retrieval_summary,
+    scoring = score_startup_idea(
+        user_idea=user_idea,
+        similar_startups=similar_startups,
+        aggregated_signals=aggregated_signals,
     )
 
-    risks = analyze_risks(
-        structured_idea,
-        scoring,
-        scenarios,
-        similar_startups,
-        retrieval_summary,
+    risk = analyze_risk(
+        user_idea=user_idea,
+        similar_startups=similar_startups,
+        scoring=scoring,
+        aggregated_signals=aggregated_signals,
+    )
+
+    scenarios = simulate_scenarios(
+        user_idea=user_idea,
+        scoring=scoring,
+        risk=risk,
+        peer_signals=aggregated_signals,
     )
 
     recommendations = generate_recommendations(
-        structured_idea,
-        scoring,
-        scenarios,
-        risks,
-        similar_startups,
-        retrieval_summary,
+        user_idea=user_idea,
+        scoring=scoring,
+        risk=risk,
+        peer_signals=aggregated_signals,
     )
 
-    report = generate_report(
-        structured_idea,
-        scoring,
-        scenarios,
-        risks,
-        recommendations,
-        similar_startups,
-        retrieval_summary,
+    report = generate_final_report(
+        user_idea=user_idea,
+        rag_context=rag_context,
+        scoring=scoring,
+        risk=risk,
+        scenarios=scenarios,
+        recommendations=recommendations,
     )
 
     return {
-        "structured_idea": structured_idea,
+        "user_idea": user_idea,
+        "rag_context": rag_context,
         "similar_startups": similar_startups,
-        "retrieval_summary": retrieval_summary,
+        "aggregated_signals": aggregated_signals,
         "scoring": scoring,
+        "risk": risk,
         "scenarios": scenarios,
-        "risks": risks,
         "recommendations": recommendations,
         "report": report,
     }
