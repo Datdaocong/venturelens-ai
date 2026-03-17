@@ -1,175 +1,167 @@
-## Live Demo
+# 🚀 VentureLens AI
 
-https://venturelens-ai.streamlit.app
-
-
-
-# VentureLens
-
-AI-powered startup idea analysis and strategic scenario simulator.
-
-VentureLens evaluates startup ideas through structured analysis, scoring frameworks, scenario simulation, and strategic recommendations.  
-It is designed as a decision-support tool for founders exploring early-stage startup ideas.
+> An AI-powered system that analyzes startup ideas using **real-world startup data**, not just LLM intuition.
 
 ---
-
-## What VentureLens Does
-
-VentureLens analyzes a startup idea and produces:
-
-- Structured startup breakdown
-- Strategic scoring across key startup dimensions
-- Future scenarios (best, realistic, worst)
-- Risk analysis
-- Actionable recommendations
-- A strategic briefing memo written in a founder/investor voice
-
-The system simulates how experienced startup advisors might evaluate an early-stage concept.
-
----
-
-## Core Features
-
-### Startup Analysis Pipeline
-
-The system processes ideas through a multi-stage AI pipeline:
-
-Idea
-↓
-Structuring
-↓
-Strategic Scoring
-↓
-Scenario Simulation
-↓
-Risk Analysis
-↓
-Recommendations
-↓
-Strategic Memo
-
-
----
-
-### Analysis Modes
-
-VentureLens supports multiple strategic perspectives.
-
-**Founder Mode**
-
-Constructive analysis focused on helping a founder improve the idea.
-
-**Investor Mode**
-
-More skeptical analysis focusing on venture-scale potential and risks.
-
-**Brutal Mode**
-
-Direct and unsentimental critique that exposes weak assumptions or shallow differentiation.
-
-**Compare Mode**
-
-Runs all modes and compares the resulting evaluations.
-
----
-
-### Output Signals
-
-Each analysis produces:
-
-- **Overall Score**
-- **Verdict** (Promising / Risky / Weak)
-- **Confidence Level**
-- **Strategic Summary**
-- **Scenario Forecast**
-- **Risk Map**
-- **Recommended Next Steps**
-
----
-
 ## Demo
+![https://venturelens-ai.streamlit.app/](./assets/demo.png)
 
-Example interface:
+## 🔥 Overview
 
-![VentureLens Demo](assets/demo.png)
+VentureLens is a data-driven startup analysis tool that evaluates business ideas by:
+
+- retrieving similar startups from a real dataset  
+- computing evidence-based signals  
+- scoring viability and risk  
+- generating structured future scenarios  
+- producing grounded recommendations  
+
+Unlike typical AI tools, VentureLens **does not rely on LLM guessing** — it is built around a **Retrieval-Augmented Generation (RAG)** pipeline with real startup data.
 
 ---
 
-## Tech Stack
-
-Python  
-Streamlit  
-Google Gemini API  
-
-Core architecture:
-
+## 🧠 System Architecture
+User Idea
+↓
+Similarity Retrieval (TF-IDF)
+↓
+RAG Context Builder
+↓
+Scoring Engine (data-driven)
+↓
+Risk Analyzer
+↓
+Scenario Simulator
+↓
+Recommendation Engine
+↓
+Report Generator
+↓
 Streamlit UI
-↓
-Analysis Controller
-↓
-AI Modules
-├─ Structuring
-├─ Scoring
-├─ Scenario Simulation
-├─ Risk Analysis
-└─ Report Generation
-↓
-Gemini LLM
 
 
 ---
 
-## Installation
+## ⚙️ Key Features
 
-Clone the repository.
+### 🔍 Retrieval-Augmented Analysis
+- Finds similar startups from dataset  
+- Uses similarity scores to ground reasoning  
+
+### 📊 Data-Driven Scoring
+- Peer success score  
+- Similarity confidence  
+- Evidence quality  
+- Risk penalty calibration  
+
+### ⚠️ Risk Analysis
+- Detects weak market patterns  
+- Identifies failure signals from peers  
+
+### 🔮 Future Scenario Simulation
+Each scenario includes:
+- description  
+- why it could happen  
+- key trigger  
+- warning signs  
+- strategic actions  
+
+### 📈 Radar Visualization
+Multi-dimensional startup evaluation:
+
+- Viability  
+- Retrieval Strength  
+- Peer Quality  
+- Evidence Depth  
+- Risk Control  
+
+---
+
+## 📁 Dataset
+
+The system uses a processed startup dataset containing:
+
+- description  
+- industry / sub-industry  
+- funding (total_funding_usd)  
+- success_score  
+- outcome_label  
+
+This enables **evidence-based reasoning instead of hallucination**.
+
+---
+
+## 🚀 How to Run
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/venturelens-ai.git
+git clone https://github.com/yourusername/venturelens-ai
 cd venturelens-ai
 
-```
-Install dependencies.
 pip install -r requirements.txt
 
-Create a .env file.
-GEMINI_API_KEY=your_api_key_here
-
-Run the application.
 streamlit run app.py
 
----
-Design Philosophy
+## 🧪 Example Use Cases
 
-VentureLens is built as a decision-support system, not a chatbot.
+- Validate startup ideas before building
 
-The goal is to simulate structured strategic thinking around startup ideas:
+- Practice product thinking for interviews
 
-- identifying hidden assumptions
+- Analyze why similar startups succeeded or failed
 
-- stress-testing business viability
+- Explore market patterns in different industries
 
-- exploring future scenarios
+## 🧠 Design Philosophy
 
-- clarifying next actions
-  
---- 
-Limitations
+- “Don’t let the model guess — force it to reason from data.”
 
-The system is exploratory and should not be treated as financial or investment advice.
-Outputs are heuristic assessments generated by an AI model.
+- VentureLens separates:
 
----
-Future Improvements
+  Data layer → similarity + signals
 
-Potential extensions include:
+  Logic layer → scoring + risk rules
 
-- idea iteration history
+  Narrative layer → explanation
 
-- market data integration
+  This makes the system:
 
-- investor-style scoring models
+  more interpretable
 
-- multi-agent evaluation
+  more realistic
 
-- pitch deck generation
+  more useful for learning
 
+
+## 📌 Future Improvements
+
+- Replace TF-IDF with embedding-based retrieval
+
+- Add industry baseline scoring
+
+- Improve calibration using percentile ranking
+
+- Integrate real-time startup APIs
+
+- Add memory & history tracking
+
+
+
+## 💡 Why This Project Matters
+
+- Most AI startup evaluators are just chatbots.
+
+- VentureLens is different:
+
+- grounded in real data
+
+- modular architecture
+
+- explainable outputs
+
+- This makes it closer to a real decision-support system than a demo app.
+
+## 👨‍💻 Author
+
+- Built as a hands-on AI systems project
+
+- Focus: turning AI from “text generator” → “reasoning system”
